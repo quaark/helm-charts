@@ -1,0 +1,31 @@
+{{- if .Values.api.sidecars.logCollector.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "mlrun.name" . }}-{{ .Values.api.sidecars.logCollector.name }}
+  labels:
+    {{- include "mlrun.logCollector.labels" . | nindent 4 }}
+spec:
+{{- if (or (eq .Values.api.sidecars.logCollector.service.type "ClusterIP") (empty .Values.api.sidecars.logCollector.service.type)) }}
+  type: ClusterIP
+  {{- if .Values.api.sidecars.logCollector.service.clusterIP }}
+  clusterIP: {{ .Values.api.sidecars.logCollector.service.clusterIP }}
+  {{end}}
+{{- else }}
+  type: {{ .Values.api.sidecars.logCollector.service.type }}
+{{- end }}
+{{- if .Values.api.sidecars.logCollector.service.externalIPs }}
+  externalIPs:
+{{ toYaml .Values.api.sidecars.logCollector.service.externalIPs | indent 4 }}
+{{- end }}
+  ports:
+    - name: grpc
+      port: {{ .Values.api.sidecars.logCollector.listenPort }}
+      protocol: TCP
+      targetPort: {{ .Values.api.sidecars.logCollector.listenPort }}
+{{ if (and (eq .Values.api.sidecars.logCollector.service.type "NodePort") (not (empty .Values.api.sidecars.logCollector.service.nodePort))) }}
+      nodePort: {{.Values.api.sidecars.logCollector.service.nodePort}}
+{{ end }}
+  selector:
+    {{- include "mlrun.logCollector.selectorLabels" . | nindent 4 }}
+{{- end -}}
